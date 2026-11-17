@@ -1,0 +1,15 @@
+{
+  "name": "entropy-loom",
+  "version": "1.0.0",
+  "description": "A topological-chaos instrument: stir a fluid with rods, and exact braid topology proves how chaotic your stirring is.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=18.0.0" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test",
+    "verify": "node --test && node --expose-gc scripts/soak.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

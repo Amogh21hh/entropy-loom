@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Entropy Loom</title>
+  <meta name="description" content="Stir a fluid with rods. Exact braid topology proves how chaotic your stirring is — and you can hear it." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%2307090d'/%3E%3Cpath d='M5 16c4-9 8 9 11 0s7-9 11 0' stroke='%23ffb35c' stroke-width='2.4' fill='none'/%3E%3Cpath d='M5 16c4 9 8-9 11 0s7 9 11 0' stroke='%2366d9ff' stroke-width='2.4' fill='none'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="top">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <div>
+          <h1>Entropy Loom</h1>
+          <p class="tag">stir a fluid · exact topology proves the chaos</p>
+        </div>
+      </div>
+      <div class="hero" aria-live="polite">
+        <div class="hero-cell"><span class="k">stretch factor <span class="nc">λ</span></span><span class="v mono" id="heroLambda">—</span></div>
+        <div class="hero-cell"><span class="k">entropy <span class="nc">h = log λ</span></span><span class="v mono" id="heroEntropy">—</span></div>
+        <div class="hero-cell"><span class="k">dye length</span><span class="v mono" id="heroLength">—</span></div>
+      </div>
+      <div class="top-actions">
+        <button id="btnSound" class="chip" aria-pressed="false" title="Sound (M)">♪ sound off</button>
+        <button id="btnHelp" class="chip" title="Keyboard & gestures (?)">?</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="stage" aria-label="Fluid stage">
+        <div class="fluidwrap"><canvas id="fluid"></canvas></div>
+        <div class="stage-hint" id="stageHint">Click <b>above</b> a gap to swap two rods counter-clockwise (σᵢ), or <b>below</b> it for clockwise (σᵢ⁻¹). Keys 1–8 do the same, with Shift for the inverse. Space plays the protocol.</div>
+        <div class="stage-status mono" id="stageStatus"></div>
+        <div class="braidstrip"><canvas id="braid" aria-label="Braid diagram"></canvas></div>
+      </section>
+
+      <aside id="panel">
+        <section class="card">
+          <h2>Stir</h2>
+          <div class="row">
+            <label class="lbl">rods</label>
+            <div class="seg" id="rodSeg" role="radiogroup"></div>
+          </div>
+          <div class="row">
+            <label class="lbl" for="preset">preset</label>
+            <select id="preset"></select>
+          </div>
+          <p class="note" id="presetNote"></p>
+          <div class="row">
+            <label class="lbl" for="protocol">protocol</label>
+            <input id="protocol" class="mono" spellcheck="false" autocomplete="off" placeholder="1 -2" />
+          </div>
+          <p class="note err" id="protocolErr"></p>
+          <div class="row buttons">
+            <button id="btnPlay" class="primary">▶ loop</button>
+            <button id="btnStep">step</button>
+            <button id="btnUndo" title="Backspace">undo</button>
+            <button id="btnReverse" title="R — play β⁻¹ to un-mix">reverse</button>
+            <button id="btnReset">reset</button>
+          </div>
+          <div class="row">
+            <label class="lbl" for="speed">tempo</label>
+            <input type="range" id="speed" min="0" max="100" value="45" />
+            <span class="mono small" id="speedOut"></span>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Braid word <span class="nc">β</span> <span class="badge" id="wordBadge">e</span></h2>
+          <div class="word mono" id="wordView"></div>
+          <dl class="facts mono">
+            <div><dt>length</dt><dd id="fLen">0</dd></div>
+            <div><dt>exp. sum</dt><dd id="fExp">0</dd></div>
+            <div><dt>perm.</dt><dd id="fPerm">—</dd></div>
+            <div><dt>β·E norm</dt><dd id="fNorm">—</dd></div>
+          </dl>
+          <div class="row buttons"><button id="btnAdopt" title="Analyse and loop the braid you just played">use β as protocol</button></div>
+        </section>
+
+        <section class="card">
+          <h2>Protocol entropy <span class="badge" id="typeBadge">—</span></h2>
+          <dl class="facts mono">
+            <div class="wide"><dt>λ</dt><dd id="eLambda">—</dd></div>
+            <div class="wide"><dt>minimal poly.</dt><dd id="ePoly">—</dd></div>
+            <div><dt>Burau(−1) ≤ λ</dt><dd id="eBurau">—</dd></div>
+            <div><dt>per move</dt><dd id="ePerMove">—</dd></div>
+          </dl>
+          <p class="note" id="eExplain"></p>
+          <div class="row buttons"><button id="btnHear">hear λ</button></div>
+        </section>
+
+        <section class="card">
+          <h2>Stretch · measured vs. proven minimum</h2>
+          <canvas id="chart" class="chart" aria-label="log length chart"></canvas>
+          <div class="legend mono small"><span class="sw dye"></span>dye length (fluid) <span class="sw topo"></span>minimal intersection (topology) <span class="sw pred"></span>λ prediction</div>
+        </section>
+
+        <section class="card">
+          <h2>Crossings per arc · geometric ≥ minimal</h2>
+          <canvas id="bars" class="chart short" aria-label="crossing bars"></canvas>
+        </section>
+
+        <section class="card">
+          <h2>Invariant monitor</h2>
+          <ul class="inv mono" id="invList"></ul>
+        </section>
+
+        <section class="card">
+          <h2>Dye</h2>
+          <div class="row">
+            <label class="lbl" for="seed">pattern</label>
+            <select id="seed">
+              <option value="nested">nested loops · lamination E</option>
+              <option value="pair">single ring · rods 1–2</option>
+              <option value="middle">inner ring · middle rods</option>
+            </select>
+          </div>
+          <div class="row toggles">
+            <label><input type="checkbox" id="ghost" /> tightened curve (G)</label>
+            <label><input type="checkbox" id="glow" checked /> glow</label>
+          </div>
+          <p class="note mono small" id="dyeInfo"></p>
+        </section>
+      </aside>
+    </main>
+
+    <dialog id="help">
+      <h2>Playing the loom</h2>
+      <ul>
+        <li><b>Click above a gap</b> to swap two rods counter-clockwise (σᵢ). <b>Click below</b> it for clockwise (σᵢ⁻¹).</li>
+        <li><b>Drag a rod</b> over or under its neighbour to swap them.</li>
+        <li><b>1–8</b> play σᵢ, and <b>Shift+1–8</b> play σᵢ⁻¹. <b>Space</b> loops the protocol, <b>Backspace</b> undoes the last swap, <b>R</b> reverses the whole word, <b>G</b> shows the tightened curve, <b>M</b> toggles sound and <b>C</b> re-seeds the dye.</li>
+        <li>You can type protocols as <code>1 -2</code>, <code>σ1 σ2⁻¹</code> or <code>aB</code> (capital letters mean inverses).</li>
+      </ul>
+      <p>The fluid is stretched by an exactly area-preserving twist flow. Alongside it, integer arithmetic on Dynnikov coordinates tracks the <i>least</i> stretching that any curve with the same topology could have. The dye can never beat that minimum, and its growth rate converges to λ.</p>
+      <form method="dialog"><button class="primary">play</button></form>
+    </dialog>
+  </div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

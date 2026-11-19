@@ -75,7 +75,7 @@ function strokeCurve(ctx, c, view, minPx) {
 const dyeCache = { canvas: null, key: '' };
 
 function dyeLayer(w, h, view, S, opts) {
-  const key = `${S.version}|${w}|${h}|${opts.glow}|${S.n}|${S.seedKind}|${opts.curveLen.map((v) => v.toPrecision(3)).join(',')}`;
+  const key = `${S.version}|${w}|${h}|${opts.dpr}|${opts.glow}|${S.n}|${S.seedKind}|${opts.curveLen.map((v) => v.toPrecision(3)).join(',')}`;
   if (!dyeCache.canvas) dyeCache.canvas = document.createElement('canvas');
   const cv = dyeCache.canvas;
   if (dyeCache.key === key && cv.width === w && cv.height === h) return cv;
@@ -90,7 +90,7 @@ function dyeLayer(w, h, view, S, opts) {
   S.curves.forEach((c, idx) => {
     const L0 = opts.curveLen0[idx] || 1;
     const len = opts.curveLen[idx] || L0;
-    const fade = Math.min(0.95, Math.max(0.07, 0.95 * Math.pow(L0 / len, 0.42)));
+    const fade = Math.min(0.95, Math.max(0.24, 0.95 * Math.pow(L0 / len, 0.3)));
     const hue = DYE_HUES[idx % DYE_HUES.length];
     if (opts.glow && !heavy) {
       ctx.strokeStyle = `hsla(${hue}, 95%, 60%, ${fade * 0.16})`;
@@ -98,7 +98,7 @@ function dyeLayer(w, h, view, S, opts) {
       strokeCurve(ctx, c, view, 1.5 * dpr);
     }
     ctx.strokeStyle = `hsla(${hue}, 100%, ${68 + 14 * (1 - fade)}%, ${fade})`;
-    ctx.lineWidth = 1.25 * dpr;
+    ctx.lineWidth = 1.4 * dpr;
     strokeCurve(ctx, c, view, (heavy ? 0.9 : 0.6) * dpr);
   });
   if (opts.glow && heavy) {
@@ -146,7 +146,8 @@ export function drawFluid(ctx, w, h, view, S, opts) {
   for (let q = 0; q < n; q++) {
     const id = S.rodId[q];
     const px = view.X(S.rodX[q]), py = view.Y(S.rodY[q]);
-    const r = GEOM.rodR * view.s;
+    // Drawn at least ~8 CSS px so rods stay visible with many rods / small screens.
+    const r = Math.max(GEOM.rodR * view.s, 8 * dpr);
     const halo = ctx.createRadialGradient(px, py, r * 0.5, px, py, r * 3.2);
     halo.addColorStop(0, rodColor(id, n, 60).replace('hsl', 'hsla').replace('%)', '%, 0.35)'));
     halo.addColorStop(1, 'hsla(0,0%,0%,0)');
@@ -158,8 +159,8 @@ export function drawFluid(ctx, w, h, view, S, opts) {
     body.addColorStop(1, rodColor(id, n, 38));
     ctx.fillStyle = body;
     ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#e8edf5aa';
-    ctx.font = `${Math.round(10.5 * dpr)}px ui-monospace, Consolas, monospace`;
+    ctx.fillStyle = '#e8edf5dd';
+    ctx.font = `600 ${Math.round(12 * dpr)}px ui-monospace, Consolas, monospace`;
     ctx.textAlign = 'center';
     ctx.fillText(String(id + 1), px, py + r + 15 * dpr);
   }
@@ -187,7 +188,7 @@ function drawGapHint(ctx, view, hover, dpr) {
   ctx.lineTo(ex + Math.cos(tang + 2.5) * 7 * dpr, ey + Math.sin(tang + 2.5) * 7 * dpr);
   ctx.lineTo(ex + Math.cos(tang - 2.5) * 7 * dpr, ey + Math.sin(tang - 2.5) * 7 * dpr);
   ctx.fill();
-  ctx.font = `${Math.round(13 * dpr)}px ui-monospace, Consolas, monospace`;
+  ctx.font = `600 ${Math.round(15 * dpr)}px ui-monospace, Consolas, monospace`;
   ctx.textAlign = 'center';
   const sub = '₀₁₂₃₄₅₆₇₈₉'[gap + 1];
   ctx.fillText(positive ? `σ${sub}` : `σ${sub}⁻¹`, cx, cy + (positive ? -r - 12 * dpr : r + 22 * dpr));
@@ -301,14 +302,14 @@ export function drawTrainTrack(ctx, view, L, dpr) {
   if (!exact) {
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = '#cfefffdd';
-    ctx.font = `${Math.round(10 * dpr)}px ui-monospace, Consolas, monospace`;
+    ctx.font = `${Math.round(11.5 * dpr)}px ui-monospace, Consolas, monospace`;
     ctx.textAlign = 'center';
     for (const [x, y, c] of labels) ctx.fillText(fmtBig(c), view.X(x), view.Y(y));
   }
   // Gap totals.
   ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = '#66d9ffaa';
-  ctx.font = `${Math.round(10 * dpr)}px ui-monospace, Consolas, monospace`;
+  ctx.font = `${Math.round(11.5 * dpr)}px ui-monospace, Consolas, monospace`;
   ctx.textAlign = 'center';
   for (let g = 0; g < n - 1; g++) ctx.fillText('ν=' + fmtBig(nu[g]), view.X(g + 0.5), view.Y(-H - 0.12));
   ctx.restore();
@@ -320,7 +321,7 @@ export function drawBraid(ctx, w, h, n, entries, current, dpr) {
   ctx.fillRect(0, 0, w, h);
   const pad = 14 * dpr;
   const rowH = (h - 2 * pad) / Math.max(1, n - 1);
-  const colW = 30 * dpr;
+  const colW = 34 * dpr;
   const maxCols = Math.floor((w - 40 * dpr) / colW);
   const list = entries.slice(-maxCols);
   const yOf = (q) => pad + q * rowH;
@@ -356,8 +357,8 @@ export function drawBraid(ctx, w, h, n, entries, current, dpr) {
     drawCol(current, x);
     ctx.globalAlpha = 1;
   }
-  ctx.fillStyle = '#5f6b7d';
-  ctx.font = `${Math.round(9.5 * dpr)}px ui-monospace, Consolas, monospace`;
+  ctx.fillStyle = '#8a97ab';
+  ctx.font = `${Math.round(11 * dpr)}px ui-monospace, Consolas, monospace`;
   ctx.textAlign = 'left';
   ctx.fillText('braid · time →', 8 * dpr, h - 4 * dpr);
 }
@@ -365,7 +366,7 @@ export function drawBraid(ctx, w, h, n, entries, current, dpr) {
 /** Stretch chart. series: [{ t, dye, topo }] in log10 units relative to start. */
 export function drawChart(ctx, w, h, series, pred, dpr) {
   ctx.clearRect(0, 0, w, h);
-  const padL = 30 * dpr, padB = 16 * dpr, padT = 8 * dpr, padR = 8 * dpr;
+  const padL = 34 * dpr, padB = 18 * dpr, padT = 8 * dpr, padR = 8 * dpr;
   const T = Math.max(8, series.length ? series[series.length - 1].t : 0);
   let ymax = 1;
   for (const p of series) ymax = Math.max(ymax, p.dye, p.topo);
@@ -375,8 +376,8 @@ export function drawChart(ctx, w, h, series, pred, dpr) {
   const Y = (v) => h - padB - ((h - padB - padT) * Math.max(0, v)) / ymax;
   ctx.strokeStyle = '#1a2230';
   ctx.lineWidth = 1 * dpr;
-  ctx.fillStyle = '#5f6b7d';
-  ctx.font = `${Math.round(9.5 * dpr)}px ui-monospace, Consolas, monospace`;
+  ctx.fillStyle = '#8a97ab';
+  ctx.font = `${Math.round(11 * dpr)}px ui-monospace, Consolas, monospace`;
   ctx.textAlign = 'right';
   const ystep = Math.max(1, Math.ceil(ymax / 5));
   for (let v = 0; v <= ymax; v += ystep) {
@@ -412,13 +413,13 @@ export function drawBars(ctx, w, h, geo, topo, dpr) {
   ctx.clearRect(0, 0, w, h);
   if (!geo) return;
   const m = geo.length;
-  const padB = 16 * dpr, padT = 14 * dpr;
+  const padB = 18 * dpr, padT = 16 * dpr;
   const lg = (v) => Math.log10(1 + Number(v > 10n ** 300n ? 10n ** 300n : BigInt(v)));
   let mx = 1;
   for (let k = 0; k < m; k++) mx = Math.max(mx, lg(geo[k]), lg(topo[k]));
   const bw = Math.min(46 * dpr, (w - 10 * dpr) / m);
   const x0 = (w - bw * m) / 2;
-  ctx.font = `${Math.round(9.5 * dpr)}px ui-monospace, Consolas, monospace`;
+  ctx.font = `${Math.round(11 * dpr)}px ui-monospace, Consolas, monospace`;
   ctx.textAlign = 'center';
   for (let k = 0; k < m; k++) {
     const x = x0 + k * bw;
@@ -430,7 +431,7 @@ export function drawBars(ctx, w, h, geo, topo, dpr) {
     ctx.strokeStyle = '#66d9ff';
     ctx.lineWidth = 1.6 * dpr;
     ctx.strokeRect(x + bw * 0.18, h - padB - ht, bw * 0.64, ht);
-    ctx.fillStyle = '#5f6b7d';
+    ctx.fillStyle = '#8a97ab';
     ctx.fillText(`ν${'₀₁₂₃₄₅₆₇₈₉'[k + 1]}`, x + bw / 2, h - 3 * dpr);
     ctx.fillStyle = '#9aa7ba';
     ctx.fillText(fmtBig(BigInt(geo[k])), x + bw / 2, h - padB - Math.max(hg, ht) - 3 * dpr);

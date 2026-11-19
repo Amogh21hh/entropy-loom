@@ -504,6 +504,20 @@ function frame(rafNow) {
   requestAnimationFrame(frame);
 }
 
+/**
+ * Canvas text, strokes and paddings follow the page's responsive root font
+ * size (see style.css), so drawings grow with the UI on large screens.
+ */
+let uiScaleCache = { at: 0, k: 1 };
+function uiScale() {
+  const now = performance.now();
+  if (now - uiScaleCache.at > 500) {
+    const px = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    uiScaleCache = { at: now, k: Math.max(1, px / 14) };
+  }
+  return uiScaleCache.k;
+}
+
 function draw() {
   const f = fitCanvas(ui.fluid);
   const ctx = ui.fluid.getContext('2d');
@@ -511,16 +525,16 @@ function draw() {
   // Curve lengths only drive dye brightness: refresh every few frames while moving.
   if (st.anim && (st.frameNo = (st.frameNo || 0) + 1) % 6 === 0) st.curveLen = st.S.curveLengths();
   drawFluid(ctx, f.w, f.h, view, st.S, {
-    dpr: f.dpr, hover: st.hover, glow: ui.glow.checked, ghost: ui.ghost.checked && !st.anim,
+    dpr: f.dpr * uiScale(), hover: st.hover, glow: ui.glow.checked, ghost: ui.ghost.checked && !st.anim,
     lamination: st.L, curveLen0: st.curveLen0, curveLen: st.curveLen,
   });
   const b = fitCanvas(ui.braid);
   const cur = st.anim ? { g: st.anim.g, ids: st.entries[st.entries.length - 1].ids, t: Math.min(1, (clock() - st.anim.start) / st.anim.dur) } : null;
-  drawBraid(ui.braid.getContext('2d'), b.w, b.h, st.n, st.entries.filter((e) => !e.pending), cur, b.dpr);
+  drawBraid(ui.braid.getContext('2d'), b.w, b.h, st.n, st.entries.filter((e) => !e.pending), cur, b.dpr * uiScale());
   const c = fitCanvas(ui.chart);
-  drawChart(ui.chart.getContext('2d'), c.w, c.h, st.series, st.pred, c.dpr);
+  drawChart(ui.chart.getContext('2d'), c.w, c.h, st.series, st.pred, c.dpr * uiScale());
   const bb = fitCanvas(ui.bars);
-  if (st.lastCross) drawBars(ui.bars.getContext('2d'), bb.w, bb.h, st.lastCross.geo, st.lastCross.topo, bb.dpr);
+  if (st.lastCross) drawBars(ui.bars.getContext('2d'), bb.w, bb.h, st.lastCross.geo, st.lastCross.topo, bb.dpr * uiScale());
   const m = st.anim ? `${formatGen(st.anim.g)}  ${Math.round(Math.min(1, (clock() - st.anim.start) / st.anim.dur) * 100)}%` : st.playing ? 'looping' : 'idle';
   $('stageStatus').textContent = `${m}\n${st.S.pointCount.toLocaleString()} pts · ${Math.round(st.fps)} fps\nstate ${st.hashStr}`;
   if (!st.anim) audio.drone(st.rate * 0.97, st.lastLenLog);
